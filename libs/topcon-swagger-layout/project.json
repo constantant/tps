@@ -1,0 +1,23 @@
+{
+  "root": "libs/topcon-swagger-layout",
+  "sourceRoot": "libs/topcon-swagger-layout/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/topcon-swagger-layout/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/topcon-swagger-layout"],
+      "options": {
+        "jestConfig": "libs/topcon-swagger-layout/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

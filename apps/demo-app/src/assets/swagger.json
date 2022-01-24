@@ -1,0 +1,1864 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Ais app backend api Testing 1.0",
+    "description": "Ais app backend api",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://ais-app-backend-devtest.azurewebsites.net"
+    }
+  ],
+  "paths": {
+    "/v1/event/live-viewer": {
+      "post": {
+        "tags": [
+          "Event"
+        ],
+        "summary": "Gets the specified query.",
+        "requestBody": {
+          "description": "The query.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveViewerQuery"
+              },
+              "example": {
+                "breadth": {
+                  "maximum": 100,
+                  "minimum": 0
+                },
+                "deadWeightTonnage": {
+                  "maximum": 1000000,
+                  "minimum": 0
+                },
+                "draught": {
+                  "maximum": 50,
+                  "minimum": 0
+                },
+                "lengthOverall": {
+                  "maximum": 500,
+                  "minimum": 0
+                },
+                "mainCategories": [],
+                "polygonCoordinates": [
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ],
+                  [
+                    3.9834022521972647,
+                    51.917167589090155
+                  ],
+                  [
+                    4.082794189453124,
+                    51.933152735405656
+                  ],
+                  [
+                    4.097728729248046,
+                    51.97113430248507
+                  ],
+                  [
+                    3.9991950988769522,
+                    51.99206859027777
+                  ],
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ]
+                ],
+                "speedOverGround": {
+                  "maximum": 50,
+                  "minimum": 0
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveViewerQuery"
+              },
+              "example": {
+                "breadth": {
+                  "maximum": 100,
+                  "minimum": 0
+                },
+                "deadWeightTonnage": {
+                  "maximum": 1000000,
+                  "minimum": 0
+                },
+                "draught": {
+                  "maximum": 50,
+                  "minimum": 0
+                },
+                "lengthOverall": {
+                  "maximum": 500,
+                  "minimum": 0
+                },
+                "mainCategories": [],
+                "polygonCoordinates": [
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ],
+                  [
+                    3.9834022521972647,
+                    51.917167589090155
+                  ],
+                  [
+                    4.082794189453124,
+                    51.933152735405656
+                  ],
+                  [
+                    4.097728729248046,
+                    51.97113430248507
+                  ],
+                  [
+                    3.9991950988769522,
+                    51.99206859027777
+                  ],
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ]
+                ],
+                "speedOverGround": {
+                  "maximum": 50,
+                  "minimum": 0
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveViewerQuery"
+              },
+              "example": {
+                "breadth": {
+                  "maximum": 100,
+                  "minimum": 0
+                },
+                "deadWeightTonnage": {
+                  "maximum": 1000000,
+                  "minimum": 0
+                },
+                "draught": {
+                  "maximum": 50,
+                  "minimum": 0
+                },
+                "lengthOverall": {
+                  "maximum": 500,
+                  "minimum": 0
+                },
+                "mainCategories": [],
+                "polygonCoordinates": [
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ],
+                  [
+                    3.9834022521972647,
+                    51.917167589090155
+                  ],
+                  [
+                    4.082794189453124,
+                    51.933152735405656
+                  ],
+                  [
+                    4.097728729248046,
+                    51.97113430248507
+                  ],
+                  [
+                    3.9991950988769522,
+                    51.99206859027777
+                  ],
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ]
+                ],
+                "speedOverGround": {
+                  "maximum": 50,
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocationReportDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocationReportDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocationReportDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/event/heat-map": {
+      "get": {
+        "tags": [
+          "Event"
+        ],
+        "summary": "Gets the specified query.",
+        "parameters": [
+          {
+            "name": "EastLongitude",
+            "in": "query",
+            "description": "Gets or sets the maximum longitude (right/east).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "NorthLatitude",
+            "in": "query",
+            "description": "Gets or sets the maximum latitude (top/north).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "SouthLatitude",
+            "in": "query",
+            "description": "Gets or sets the minimum latitude (bottom/south).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "WestLongitude",
+            "in": "query",
+            "description": "Gets or sets the minimum longitude (left/west).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "ZoomLevel",
+            "in": "query",
+            "description": "Gets or sets the zoom level.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HeatmapClusterDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HeatmapClusterDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HeatmapClusterDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/event/coverage-map": {
+      "get": {
+        "tags": [
+          "Event"
+        ],
+        "summary": "Gets the specified query.",
+        "parameters": [
+          {
+            "name": "EastLongitude",
+            "in": "query",
+            "description": "Gets or sets the maximum longitude (right/east).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "NorthLatitude",
+            "in": "query",
+            "description": "Gets or sets the maximum latitude (top/north).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "SouthLatitude",
+            "in": "query",
+            "description": "Gets or sets the minimum latitude (bottom/south).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "WestLongitude",
+            "in": "query",
+            "description": "Gets or sets the minimum longitude (left/west).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "ZoomLevel",
+            "in": "query",
+            "description": "Gets or sets the zoom level.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClusterDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClusterDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClusterDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/export/main-categories": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/export/parameters": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/export": {
+      "post": {
+        "tags": [
+          "Export"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartEventExportCommand"
+              },
+              "example": {
+                "breadth": {
+                  "maximum": 100,
+                  "minimum": 0
+                },
+                "deadWeightTonnage": {
+                  "maximum": 1000000,
+                  "minimum": 0
+                },
+                "draught": {
+                  "maximum": 50,
+                  "minimum": 0
+                },
+                "endDate": "2022-01-11T08:16:40.0531228+00:00",
+                "includeOutliers": false,
+                "lengthOverall": {
+                  "maximum": 500,
+                  "minimum": 0
+                },
+                "mainCategories": [],
+                "parameters": [
+                  "mmsi",
+                  "latitude",
+                  "longitude",
+                  "courseOverGround",
+                  "speedOverGround"
+                ],
+                "polygonCoordinates": [
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ],
+                  [
+                    3.9834022521972647,
+                    51.917167589090155
+                  ],
+                  [
+                    4.082794189453124,
+                    51.933152735405656
+                  ],
+                  [
+                    4.097728729248046,
+                    51.97113430248507
+                  ],
+                  [
+                    3.9991950988769522,
+                    51.99206859027777
+                  ],
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ]
+                ],
+                "polygonId": null,
+                "projectId": "00000000-0000-0000-0000-000000000000",
+                "queryName": "StartEventExportCommandExample",
+                "speedOverGround": {
+                  "maximum": 50,
+                  "minimum": 0
+                },
+                "startDate": "2022-01-10T08:16:40.0531189+00:00"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartEventExportCommand"
+              },
+              "example": {
+                "breadth": {
+                  "maximum": 100,
+                  "minimum": 0
+                },
+                "deadWeightTonnage": {
+                  "maximum": 1000000,
+                  "minimum": 0
+                },
+                "draught": {
+                  "maximum": 50,
+                  "minimum": 0
+                },
+                "endDate": "2022-01-11T08:16:40.0531228+00:00",
+                "includeOutliers": false,
+                "lengthOverall": {
+                  "maximum": 500,
+                  "minimum": 0
+                },
+                "mainCategories": [],
+                "parameters": [
+                  "mmsi",
+                  "latitude",
+                  "longitude",
+                  "courseOverGround",
+                  "speedOverGround"
+                ],
+                "polygonCoordinates": [
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ],
+                  [
+                    3.9834022521972647,
+                    51.917167589090155
+                  ],
+                  [
+                    4.082794189453124,
+                    51.933152735405656
+                  ],
+                  [
+                    4.097728729248046,
+                    51.97113430248507
+                  ],
+                  [
+                    3.9991950988769522,
+                    51.99206859027777
+                  ],
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ]
+                ],
+                "polygonId": null,
+                "projectId": "00000000-0000-0000-0000-000000000000",
+                "queryName": "StartEventExportCommandExample",
+                "speedOverGround": {
+                  "maximum": 50,
+                  "minimum": 0
+                },
+                "startDate": "2022-01-10T08:16:40.0531189+00:00"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartEventExportCommand"
+              },
+              "example": {
+                "breadth": {
+                  "maximum": 100,
+                  "minimum": 0
+                },
+                "deadWeightTonnage": {
+                  "maximum": 1000000,
+                  "minimum": 0
+                },
+                "draught": {
+                  "maximum": 50,
+                  "minimum": 0
+                },
+                "endDate": "2022-01-11T08:16:40.0531228+00:00",
+                "includeOutliers": false,
+                "lengthOverall": {
+                  "maximum": 500,
+                  "minimum": 0
+                },
+                "mainCategories": [],
+                "parameters": [
+                  "mmsi",
+                  "latitude",
+                  "longitude",
+                  "courseOverGround",
+                  "speedOverGround"
+                ],
+                "polygonCoordinates": [
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ],
+                  [
+                    3.9834022521972647,
+                    51.917167589090155
+                  ],
+                  [
+                    4.082794189453124,
+                    51.933152735405656
+                  ],
+                  [
+                    4.097728729248046,
+                    51.97113430248507
+                  ],
+                  [
+                    3.9991950988769522,
+                    51.99206859027777
+                  ],
+                  [
+                    3.95730972290039,
+                    51.95939413385739
+                  ]
+                ],
+                "polygonId": null,
+                "projectId": "00000000-0000-0000-0000-000000000000",
+                "queryName": "StartEventExportCommandExample",
+                "speedOverGround": {
+                  "maximum": 50,
+                  "minimum": 0
+                },
+                "startDate": "2022-01-10T08:16:40.0531189+00:00"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/heatmap/location-report": {
+      "get": {
+        "tags": [
+          "Heatmap"
+        ],
+        "summary": "Gets the specified query.",
+        "parameters": [
+          {
+            "name": "NorthLatitude",
+            "in": "query",
+            "description": "Gets or sets the maximum latitude (top/north).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "EastLongitude",
+            "in": "query",
+            "description": "Gets or sets the maximum longitude (right/east).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "SouthLatitude",
+            "in": "query",
+            "description": "Gets or sets the minimum latitude (bottom/south).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "WestLongitude",
+            "in": "query",
+            "description": "Gets or sets the minimum longitude (left/west).",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "ZoomLevel",
+            "in": "query",
+            "description": "Gets or sets the zoom level.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureCollection"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureCollection"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureCollection"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project": {
+      "post": {
+        "tags": [
+          "Project"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectCommand"
+              },
+              "example": {
+                "code": "ProjectX",
+                "contributors": [
+                  "1dd39cf5-ae59-4c88-acdc-fc3873f0f0a4",
+                  "dc4dfa3b-e48d-4229-b030-ddc02bfb1a77",
+                  "8c0364d1-0f9b-46c8-9169-0c10ebdf3a5f"
+                ],
+                "name": "eXample project"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectCommand"
+              },
+              "example": {
+                "code": "ProjectX",
+                "contributors": [
+                  "1dd39cf5-ae59-4c88-acdc-fc3873f0f0a4",
+                  "dc4dfa3b-e48d-4229-b030-ddc02bfb1a77",
+                  "8c0364d1-0f9b-46c8-9169-0c10ebdf3a5f"
+                ],
+                "name": "eXample project"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectCommand"
+              },
+              "example": {
+                "code": "ProjectX",
+                "contributors": [
+                  "1dd39cf5-ae59-4c88-acdc-fc3873f0f0a4",
+                  "dc4dfa3b-e48d-4229-b030-ddc02bfb1a77",
+                  "8c0364d1-0f9b-46c8-9169-0c10ebdf3a5f"
+                ],
+                "name": "eXample project"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/GetProjectsQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/{projectId}": {
+      "delete": {
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/{projectId}/polygon": {
+      "post": {
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePolygonCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePolygonCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePolygonCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolygonDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolygonDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolygonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/{projectId}/polygon/{polygonId}": {
+      "delete": {
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "polygonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "polygonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePolygonCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePolygonCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePolygonCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolygonDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolygonDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolygonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/user/accept-terms": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AcceptTermsCommand"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/v1/user/profile": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/GetUserProfileQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/user": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/GetUsersQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfileDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfileDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfileDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AcceptTermsCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Accepts the terms."
+      },
+      "BetweenDto": {
+        "required": [
+          "maximum",
+          "minimum"
+        ],
+        "type": "object",
+        "properties": {
+          "maximum": {
+            "type": "number",
+            "format": "double"
+          },
+          "minimum": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClusterDto": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "$ref": "#/components/schemas/PointDto"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreatePolygonCommand": {
+        "required": [
+          "name",
+          "polygonCoordinates",
+          "projectId"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "polygonCoordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              }
+            }
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateProjectCommand": {
+        "required": [
+          "code",
+          "contributors",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "contributors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FeatureCollection": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetProjectsQuery": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "GetUserProfileQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Get the profile from the current user."
+      },
+      "GetUsersQuery": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "HeatmapClusterDto": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "$ref": "#/components/schemas/PointDto"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LiveViewerQuery": {
+        "required": [
+          "polygonCoordinates"
+        ],
+        "type": "object",
+        "properties": {
+          "breadth": {
+            "$ref": "#/components/schemas/BetweenDto"
+          },
+          "deadWeightTonnage": {
+            "$ref": "#/components/schemas/BetweenDto"
+          },
+          "draught": {
+            "$ref": "#/components/schemas/BetweenDto"
+          },
+          "lengthOverall": {
+            "$ref": "#/components/schemas/BetweenDto"
+          },
+          "mainCategories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets or sets the main categories filter.",
+            "nullable": true
+          },
+          "polygonCoordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              }
+            },
+            "description": "Gets or sets the polygon coordinates. Array of longitude, latitude (based on the geoJSON format)."
+          },
+          "speedOverGround": {
+            "$ref": "#/components/schemas/BetweenDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Query to retrieve a heatmap for the last 7 days."
+      },
+      "LocationReportDto": {
+        "type": "object",
+        "properties": {
+          "breadth": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "courseOverGround": {
+            "type": "number",
+            "format": "double"
+          },
+          "deadWeightTonnage": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "draught": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lengthOverall": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "location": {
+            "$ref": "#/components/schemas/PointDto"
+          },
+          "mainCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "mmsi": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "speedOverGround": {
+            "type": "number",
+            "format": "double"
+          },
+          "subCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "trueHeading": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "vesselType": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PointDto": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PolygonDto": {
+        "required": [
+          "createdDate",
+          "id",
+          "name",
+          "owner",
+          "polygonCoordinates"
+        ],
+        "type": "object",
+        "properties": {
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "polygonCoordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectDetailDto": {
+        "required": [
+          "code",
+          "contributors",
+          "createdDate",
+          "id",
+          "name",
+          "owner",
+          "polygons"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "polygons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PolygonDto"
+            }
+          },
+          "contributors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectDto": {
+        "required": [
+          "code",
+          "createdDate",
+          "id",
+          "name",
+          "owner",
+          "polygons"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "polygons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PolygonDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "StartEventExportCommand": {
+        "required": [
+          "endDate",
+          "polygonCoordinates",
+          "startDate"
+        ],
+        "type": "object",
+        "properties": {
+          "breadth": {
+            "$ref": "#/components/schemas/BetweenDto"
+          },
+          "deadWeightTonnage": {
+            "$ref": "#/components/schemas/BetweenDto"
+          },
+          "draught": {
+            "$ref": "#/components/schemas/BetweenDto"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Gets or sets the end date.",
+            "format": "date-time"
+          },
+          "includeOutliers": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether [include outliers] filter."
+          },
+          "lengthOverall": {
+            "$ref": "#/components/schemas/BetweenDto"
+          },
+          "mainCategories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets or sets the main categories filter.",
+            "nullable": true
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets or sets the parameters exposed in the export.",
+            "nullable": true
+          },
+          "polygonCoordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              }
+            },
+            "description": "Gets or sets the polygon coordinates. Array of longitude, latitude (based on the geoJSON format)."
+          },
+          "polygonId": {
+            "type": "string",
+            "description": "Gets or sets the polygon identifier.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Gets or sets the project identifier.",
+            "format": "uuid"
+          },
+          "queryName": {
+            "type": "string",
+            "description": "Gets or sets the name of the query.",
+            "nullable": true
+          },
+          "speedOverGround": {
+            "$ref": "#/components/schemas/BetweenDto"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Gets or sets the start date.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Command to start the export."
+      },
+      "UpdatePolygonCommand": {
+        "required": [
+          "id",
+          "name",
+          "polygonCoordinates",
+          "projectId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "polygonCoordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              }
+            }
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateProjectCommand": {
+        "required": [
+          "code",
+          "contributors",
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "contributors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserProfileDto": {
+        "required": [
+          "hasAcceptedTerms",
+          "id",
+          "personId"
+        ],
+        "type": "object",
+        "properties": {
+          "hasAcceptedTerms": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Put **_ONLY_** your JWT Bearer token on textbox below!",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ]
+}
