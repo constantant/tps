@@ -1,0 +1,4559 @@
+openapi: 3.0.1
+info:
+  title: MAGNET Data Converter REST API
+  description: |-
+    This is a [Swagger](http://swagger.io) documentation to MAGNET Data Converter.
+
+    Key features:
+    - Generate MAGNET products project files (mjfzip/mjo/mjt) using input data of other CAD/Surveying formats that are popular to exchange.
+    - Supported source data:
+        - Topcon XML Code library: Code/Layer library
+        - APL ASCII txt/csv/dat points data: point data that Field user is going to work with. Supported for the APL workflow.
+        - DWG/DXF data: CAD data that is transformed into background drawing and attached into MAGNET Field job.
+        - MaXML data: the public XML format for MAGNET products data exchange.
+        - 3DMC data: the 3DMC TP3 project data, PT3 points data, LN3 linework data, GC3 control data, RD3 alignment data and TN3 TIN surface data.
+        - Bentley IModel and DGN data: the Bentley proprietory format to exchange with its products.
+        - LandXML data: the non-proprietary data standard, driven by an consortium of partners for the inter-operability of data utilized within the Land Development industry.
+        - PDF file: PDF document is transformed into background drawing and attached into MAGNET Field job.
+
+    General workflow for generating MAGNET product job file:
+    - Receive JWT token and `userId` upon authorization. `userId` is used a value for `ownerId` parameter.
+    - Create new via POST `/job/{ownerId}/{format}` or upload existing via POST `/job/{ownerId}/upload/{format}` MAGNET product job file where you want to import data.
+    - Append data from uploaded files (Code Library, DWG/DXF, APL text file, MaXML) with PUT `/job/{ownerId}/{jobId}/{format}`.
+        - Append data with advanced filtering (Feature selection) can be done with POST `/job/{ownerId}/{jobId}/{format}` to upload source file which responds with source data content report. After user filled the Feature selection filter data import should be initiated via PUT `/job/{jobId}/filtered/{fileId}`
+    - Query for data import progress via GET `/job/{ownerId}/{jobId}/status`
+    - Download the resulted MAGNET product job file (MAGNET Field job will be sent as .mjfzip package) via GET `/job/{ownerId}/{jobId}`.
+        - Cleanup the job related data on server via DEL `/job/{ownerId}/{jobId}`.
+
+    General workflow for exporting data from MAGNET product job file:
+    - Receive JWT token and `userId` upon authorization. `userId` is used a value for `ownerId` parameter.
+    - Upload MAGNET product job file where you want export data from via POST `/job/{ownerId}/upload/{format}`.
+    - Download MAGNET product job in user defined format via GET `/job/{ownerId}/{jobId}/as{format}`.
+        - Cleanup the job related data on server via DEL `/job/{ownerId}/{jobId}`.
+
+    *Starting from APIv7 we support only JWT-based authorization. JWT Tokens could now be obtained via the **TPS Authorizer** service or by using `/oauth/token` endpoint.*
+  version: "7.0"
+servers:
+- url: /v7
+- url: /
+  description: A development root
+tags:
+- name: apl
+  description: APL workflow
+- name: mdc
+  description: MAGNET Data Converter
+- name: me
+  description: MAGNET Enterprise
+paths:
+  /oauth/token:
+    post:
+      tags:
+        - mdc
+        - me
+        - apl
+      summary: Obtain an accessToken following the OAuth Authorization Code flow
+      description: Refreshing token with OAuthRefreshTokenRequest is also supported in this endpoint
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OAuthAuthorizationCodeRequest'
+      responses:
+        200:
+          $ref: '#/components/responses/OAuthResponse'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthError'
+  /oauth/refresh_token:
+    post:
+      tags:
+        - mdc
+        - me
+        - apl
+      summary: Refresh accessToken following the OAuth Authorization Code flow
+      description: Preferred way is to use /oauth/token endpoint for this request
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OAuthRefreshTokenRequest'
+      responses:
+        200:
+          $ref: '#/components/responses/OAuthResponse'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthError'
+  /job/{ownerId}/upload/MaXML:
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads the user's *.mxlzip file
+      description: uploads the user's *.mxlzip (zipped MAGNET XML (MAXML) file with
+        *.mxl MAXML file and related binary data) and sets it as a working set.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.mxlzip file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/mjfzip:
+    post:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: uploads the user's *.mjfzip file
+      description: uploads the user's *.mjfzip packed MAGNET Field job file and sets
+        it as a working set.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.mjfzip file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/mjf:
+    post:
+      tags:
+      - me
+      - mdc
+      summary: uploads the user's *.mjf file.
+      description: uploads the user's MAGNET Field job *.mjf file and sets it as a
+        working set.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.mjf file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/tsj:
+    post:
+      tags:
+      - me
+      summary: uploads the user's *.tsj file.
+      description: uploads the user's TopSurv *.tsj job file which will be upgraded
+        to mjf when processed.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.tsj file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/mjt:
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads the user's *.mjt file.
+      description: uploads the user's \*.mjt MAGNET Tools job file and sets it as
+        a working set.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.mjt file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/ttp:
+    post:
+      tags:
+      - me
+      summary: uploads the user's *.ttp file.
+      description: uploads the user's legacy Topcon Tools *.ttp job file and sets
+        it as a working set.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.ttp file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/mjo:
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads the user's *.mjo file
+      description: uploads the user's *.mjo MAGNET Office job file and sets it as
+        a working set.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.mjo file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/LandXML:
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads the user's *.xml file
+      description: uploads the user's *.xml (LandXML file) and sets it as a working
+        set.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.xml file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/tp3:
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads the user's *.tp3 file
+      description: uploads the user's *.tp3 3DMC TP3 project file and sets it as a
+        working set.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.tp3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/{FormatExt}:
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads the user's *.{FormatExt} file
+      description: uploads the user's *.{FormatExt} file to work with. For formats
+        that are not the MAGNET projects only GET /job/{ownerId}/{jobId}/asXXX will be supported
+        (e.g. upload DWG and download it asMAXML) set.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: FormatExt
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: PDFScaling
+        in: query
+        description: Optional scaling parameter for PDF documents. By default has
+          value 1000
+        schema:
+          type: number
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.{FormatExt} file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/upload/byURL/{FormatExt}:
+    post:
+      tags:
+      - mdc
+      - me
+      summary: upload the user's *.{FormatExt} file from specified url
+      description: "upload the user’s *.{FormatExt} file from url to service and work\
+        \ with it. For formats that are not the MAGNET projects only GET /job/{ownerId}/{jobId}/asXXX\
+        \ will be supported (e.g. upload DWG and download it asMAXML) set. \n\nField\
+        \ {remoteFile.filename} may be empty, so in this case, filename from responses\
+        \ headers will be used. \n\nField {remoteFile.method} may be empty, so GET\
+        \ will be used."
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: FormatExt
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: PDFScaling
+        in: query
+        description: Optional scaling parameter for PDF documents. By default has
+          value 1000
+        schema:
+          type: number
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoteFile'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: remoteFile
+  /job/{ownerId}/maxml:
+    post:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: create new MAXML job
+      description: create new MAXML job with title provided by user in body
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: created job title
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobTitle'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Failed to create a job on server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: title
+  /job/{ownerId}/mjf:
+    post:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: create new MAGNET Field job
+      description: create new MAGNET Field job with title provided by user in body
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: created job title
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobTitle'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Failed to create a job on server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: title
+  /job/{ownerId}/mjt:
+    post:
+      tags:
+      - mdc
+      - me
+      summary: create new MAGNET Tools job
+      description: create new MAGNET Tools job with title provided by user in body
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: created job title
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobTitle'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Failed to create a job on server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: title
+  /job/{ownerId}/mjo:
+    post:
+      tags:
+      - mdc
+      - me
+      summary: create new MAGNET Office job
+      description: create new MAGNET Office job with title provided by user in body
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: created job title
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobTitle'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        202:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobId'
+        400:
+          description: Failed to create a job on server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: title
+  /job/{ownerId}/{jobId}/CodeLibrary:
+    put:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: uploads Topcon Code library XML
+      description: uploads the Topcon Code library XML file and starts the Code library
+        import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.xml file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/DWG:
+    put:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: uploads Autodesk CAD drawing
+      description: uploads the Autodesk CAD drawing file and starts the DWG file import
+        procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: units
+        in: query
+        description: source file units ('meters' | 'iinches' | 'usinches' | 'ifeet'
+          | 'usfeet'), absent by default = read from DWG source.
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: 'data types to import separated with comma: ''PT'' (points),
+          ''LN'' (lineworks)'
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.dwg file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: uploads Autodesk CAD drawing
+      description: uploads the Autodesk CAD drawing file and responds with content
+        report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.dwg file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/MaXML:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon MaXML file or zipped package
+      description: uploads the Topcon MaXML (*.mxl;*.mxlzip) format file and starts
+        the MaXML file import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: 'data types to import separated with comma: ''PT'' (points),
+          ''LN'' (lineworks)'
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.mxl;*.mxlzip file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads the Topcon MaXML (*.mxl) format file and responds with content
+        report on Features available.
+      description: uploads Topcon MaXML file
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.mxl file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/TP3:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC project file
+      description: uploads the Topcon 3DMC project file (*.tp3) and starts the TP3
+        file import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: 'data types to import separated with comma: ''PT'' (points),
+          ''LN'' (lineworks)'
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.tp3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC project file
+      description: uploads the Topcon 3DMC project file (*.tp3) format file and responds
+        with content report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.tp3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/PT3:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC points file
+      description: uploads the Topcon 3DMC points file (*.pt3) and starts the PT3
+        file import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.pt3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC points file
+      description: uploads the Topcon 3DMC points file (*.pt3) format file and responds
+        with content report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.pt3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/LN3:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC linework file
+      description: uploads the Topcon 3DMC linework file (*.ln3) and starts the LN3
+        file import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.ln3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC linework file
+      description: uploads the Topcon 3DMC linework file (*.ln3) format file and responds
+        with content report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.ln3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/GC3:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC control file
+      description: uploads the Topcon 3DMC control file (*.gc3) and starts the GC3
+        file import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.gc3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC control file
+      description: uploads the Topcon 3DMC control file (*.gc3) format file and responds
+        with content report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.gc3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/RD3:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC alignment file
+      description: uploads the Topcon 3DMC alignment file (*.rd3) and starts the RD3
+        file import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.rd3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC alignment file
+      description: uploads the Topcon 3DMC alignment file (*.rd3) format file and
+        responds with content report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.rd3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/TN3:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC TIN surface file
+      description: uploads the Topcon 3DMC TIN surface file (*.tn3) and starts the
+        TN3 file import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.tn3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads Topcon 3DMC TIN surface file
+      description: uploads the Topcon 3DMC TIN surface file (*.tn3) format file and
+        responds with content report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.tn3 file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/DGN:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads Bentley DGN file
+      description: uploads Bentley DGN format file and starts file import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: 'data types to import separated with comma: ''PT'' (points),
+          ''LN'' (lineworks)'
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.dgn file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads Bentley DGN file
+      description: uploads Bentley DGN format file and responds with content report
+        on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.dgn file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/DXF:
+    put:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: uploads Autodesk CAD drawing
+      description: uploads the Autodesk CAD drawing file and starts the DXF file import
+        procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: units
+        in: query
+        description: source file units ('meters' | 'iinches' | 'usinches' | 'ifeet'
+          | 'usfeet'), 'meters' by default.
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: 'data types to import separated with comma: ''PT'' (points),
+          ''LN'' (lineworks)'
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.dxf file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: uploads Autodesk CAD drawing
+      description: uploads the Autodesk CAD drawing file and responds with content
+        report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.dxf file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/IModel:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads Bentley IModel file
+      description: uploads Bentley iModel file (*.icm.dgn) and starts file import
+        procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: 'data types to import separated with comma: ''PT'' (points),
+          ''LN'' (lineworks)'
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: iModel file to upload
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads Bentley IModel file
+      description: uploads Bentley iModel file (*.icm.dgn) and responds with content
+        report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: iModel file to upload
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/LandXML:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads LandXML file
+      description: uploads the LandXML file (*.xml) and starts the LandXML file import
+        procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: 'data types to import separated with comma: ''PT'' (points),
+          ''LN'' (lineworks)'
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.xml file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads LandXML file
+      description: uploads the LandXML file (*.xml) format file and responds with
+        content report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.xml file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job//{ownerId}/{jobId}/PDF:
+    put:
+      tags:
+      - mdc
+      - me
+      summary: uploads PDF file
+      description: uploads the PDF file (*.pdf) and starts the PDF file import procedure.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: 'data types to import separated with comma: ''PT'' (points),
+          ''LN'' (lineworks)'
+        required: true
+        schema:
+          type: string
+      - name: PDFScaling
+        in: query
+        description: Optional scaling parameter for PDF documents. By default has
+          value 1000
+        schema:
+          type: number
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.pdf file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - mdc
+      - me
+      summary: uploads PDF file
+      description: uploads the PDF file (*.pdf) format file and responds with content
+        report on Features available.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: '*.pdf file to upload'
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/APL:
+    put:
+      tags:
+      - apl
+      summary: uploads the APL text file and starts the point data import procedure.
+      description: uploads APL text file (comma delimeted txt/csv/dat text format
+        with header at the 1st row)
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: units
+        in: query
+        description: source file units ('meters' | 'iinches' | 'usinches' | 'ifeet'
+          | 'usfeet'), 'meters' by default.
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: txt/csv file to upload
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Upload failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/byURL/{FormatExt}:
+    put:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: uploads job file from specified url
+      description: "uploads file from specified {remoteFile.file.url} with {remoteFile.file.method}\
+        \ HTTP method and starts import procedure by {FormatExt} format and starts\
+        \ the import file procedure. \n\nField {remoteFile.file.filename} may be empty,\
+        \ so in this case, filename from response headers will be used. \n\nField\
+        \ {remoteFile.file.method} may be empty, so GET will be used."
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: 'data types to import separated with comma: ''PT'' (points),
+          ''LN'' (lineworks)'
+        required: true
+        schema:
+          type: string
+      - name: FormatExt
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: PDFScaling
+        in: query
+        description: Optional scaling parameter for PDF documents. By default has
+          value 1000
+        schema:
+          type: number
+      requestBody:
+        description: uploaded file
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoteFile'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found or {fileId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: remoteFile
+    post:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: uploads job file from specified url
+      description: "uploads file from specified {remoteFile.file.url} with {remoteFile.file.method}\
+        \ HTTP method and starts import procedure by {FormatExt} format and responds\
+        \ with content report on Features available. \n\nField {remoteFile.file.filename}\
+        \ may be empty, so in this case, filename from responses headers will be used.\
+        \ \n\nField {remoteFile.file.method} may be empty, so GET will be used."
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: FormatExt
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: PDFScaling
+        in: query
+        description: Optional scaling parameter for PDF documents. By default has
+          value 1000
+        schema:
+          type: number
+      requestBody:
+        description: uploaded file
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoteFile'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileId'
+        400:
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found or {fileId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: remoteFile
+  /job/{ownerId}/{jobId}/Options:
+    put:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: set job options
+      description: sets job distance units. Bu default the job is created with meters
+        distance units
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: units
+        in: query
+        description: distance units ('meters' | 'iinches' | 'usinches' | 'ifeet' |
+          'usfeet')
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content: {}
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/filtered/{fileId}:
+    put:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: appends data from previously uploaded {fileId}
+      description: appends data from previously uploaded {fileId} with user defined
+        Feature selection.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: fileId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Feature selection filter. In case of Feature nameset is empty
+          - all features are processed.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Features'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found or {fileId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: filter
+  /job/{ownerId}/{jobId}/asLandXML12:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download the job data converted into LandXML 1.2
+      description: download a job as LandXML 1.2
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asLandXML10:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download the job data converted into LandXML 1.0
+      description: download a job as LandXML 1.0
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asLandXML20:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download the job data converted into LandXML 2.0
+      description: download a job as LandXML 2.0
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asDWG:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download the job data converted into DWG
+      description: download a job as DWG
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asDXF:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as Autocad DXF drawing
+      description: download the job data converted into DXF
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asDGN:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as DGN
+      description: download the job data converted into DGN
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asImportData:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as deprecated legacy MAGNET XML zipped package with
+        *.xml file and related binary data.
+      description: download the job data converted into deprecated legacy MAGNET XML
+        with all related data (zipped).
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asTP3:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as 3DMC project file
+      description: download the job data converted into 3DMC TP3 format.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asPT3:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as 3DMC points file
+      description: download the job data converted into 3DMC PT3 format.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asLN3:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as 3DMC linework file
+      description: download the job data converted into 3DMC LN3 format.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asGC3:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as 3DMC control file
+      description: download the job data converted into 3DMC GC3 format.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asRD3:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as 3DMC alignment file
+      description: download the job data converted into 3DMC RD3 format.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asTN3:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as 3DMC TIN surface file
+      description: download the job data converted into 3DMC TN3 format.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asMJFZIP:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as MAGNET Field job
+      description: download the job data converted into MAGNET Field job as a *.mjfzip
+        package.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/asMAXML:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download a job as MAXML compressed package (MXLZIP)
+      description: download the job data converted into MAXML format as a *.mxlzip
+        package.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/as{FormatExt}:
+    post:
+      tags:
+      - me
+      - mdc
+      summary: download a job as defined format
+      description: Generic method for auto conversion basing on format unique extension.
+        Responds with error if no conversion supported. Used to start conversion asynchronous.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: FormatExt
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: outBackground
+        in: query
+        schema:
+          type: boolean
+          default: false
+      requestBody:
+        description: Feature selection filter. In case of Feature nameset is empty
+          - all features are processed.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Features'
+        required: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: filter
+  /job/{ownerId}/{jobId}/task/{taskId}:
+    get:
+      tags:
+      - apl
+      - me
+      - mdc
+      summary: download a defined taskId file
+      description: download a file that was produced via POST /job/{jobId}/as{FormatExt}
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    delete:
+      tags:
+      - apl
+      - me
+      - mdc
+      summary: delete task
+      description: delete task by id
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content: {}
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job or task not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}:
+    get:
+      tags:
+      - apl
+      - me
+      - mdc
+      summary: download a defined job
+      description: download a job file
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    delete:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: Drops the job on server by jobId.
+      description: Drops the job and all related info on server
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content: {}
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/status:
+    get:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: Gets all import procedures progress.
+      description: status of import proccess for all jobs
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: returns the report on all import tasks assigned to all jobs
+            for current connection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStates'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/features:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: Gets actual features report on defined {jobId}.
+      description: returns a features list of defined job.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: returns the report on all import tasks assigned to all jobs
+            for current connection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Features'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/status:
+    get:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: Gets import procedure progress.
+      description: status of import proccess
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: returns the report on all import tasks assigned to the job
+            by jobId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobState'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/status/{taskId}:
+    get:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: Gets import procedure progress for concrete taskId.
+      description: status of import proccess
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: returns the report on concrete taskId assigned to the job by
+            jobId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskState'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Task {taskId} status not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /job/{ownerId}/{jobId}/render:
+    get:
+      tags:
+      - mdc
+      - me
+      summary: download rendered job as GLTF and MaXML in compressed package (MXLZIP).
+      description: download rendered job data as a *.mxlzip package. Synchronous.
+        For MaXML jobs only.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Download failed or not a MaXML job
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+    post:
+      tags:
+      - me
+      - mdc
+      summary: Start job's asynchronous rendering task
+      description: Start job's asynchronous rendering task. Supports feature filtering.
+        Retrieve result later with `GET /job/{ownerId}/{jobId}/task/{taskId}`
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Feature selection filter. In case of Feature nameset is empty
+          - all features are processed.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Features'
+        required: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/TaskId'
+        400:
+          description: Download failed.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Job {jobId} not found.
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+      x-codegen-request-body-name: filter
+  /formats/{ownerId}:
+    get:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: input format list
+      description: Gets a list of formats supported for input.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: returns a list of format descriptions supported as input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Formats'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+  /formats/{ownerId}/from{FormatExt}:
+    get:
+      tags:
+      - apl
+      - mdc
+      - me
+      summary: list of available output formats
+      description: Gets a list of output formats that are supported for the defined input one.
+      parameters:
+      - name: ownerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: FormatExt
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: returns a list of format descriptions supported as input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Formats'
+        401:
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: FormatExt not supported.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - JWT: []
+components:
+  schemas:
+    JobId:
+      required:
+      - jobId
+      type: object
+      properties:
+        jobId:
+          type: string
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Enum-styled machine-readable error code
+          example: JOB_NOT_FOUND
+        description:
+          type: string
+          description: Optional human-readable error message
+          example: The job requested could not be found
+      required:
+      - code
+      additionalProperties: false
+    JobTitle:
+      type: object
+      properties:
+        title:
+          type: string
+    TaskId:
+      type: object
+      properties:
+        taskId:
+          type: string
+        filename:
+          type: string
+    FileId:
+      type: object
+      properties:
+        fileId:
+          type: string
+        filename:
+          type: string
+        features:
+          $ref: '#/components/schemas/Features'
+    Formats:
+      type: array
+      items:
+        $ref: '#/components/schemas/FormatInfo'
+    FormatInfo:
+      type: object
+      properties:
+        FormatExt:
+          type: string
+          description: format unique identifier (usually equal to format file extention)
+        title:
+          type: string
+          description: format complete title
+        extension:
+          type: string
+          description: format file extension mask
+      required:
+      - FormatExt
+      additionalProperties: false
+    LayerFeature:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Feature human readable title
+        count:
+          type: integer
+          format: int32
+        nameset:
+          type: array
+          description: nameset contains of unique names of feature items, can be used
+            for feature selection by name. Supported for Roads and Surfaces.
+          items:
+            type: string
+    LayerFeatures:
+      type: array
+      items:
+        $ref: '#/components/schemas/LayerFeature'
+    LayerDetails:
+      required:
+      - layerName
+      type: object
+      properties:
+        layerName:
+          type: string
+        layerFeatures:
+          $ref: '#/components/schemas/LayerFeatures'
+    Feature:
+      required:
+      - filter
+      type: object
+      properties:
+        title:
+          type: string
+          description: Feature human readable title
+        filter:
+          type: string
+          description: 'Feature type unique identifier, used in conversion filters.
+            Supported types: PT (Points), LN (Lineworks), AR (Areas), RD (Roads/Alignments),
+            DTM (Surfaces)'
+        count:
+          type: integer
+          format: int32
+        nameset:
+          type: array
+          description: nameset contains of unique names of feature items, can be used
+            for feature selection by name. Supported for Roads and Surfaces.
+          items:
+            type: string
+        layerDetails:
+          type: array
+          description: Used only in layer reporting. It contains a series of reports
+            for the data that belongs to a particular layer.
+          items:
+            $ref: '#/components/schemas/LayerDetails'
+    Features:
+      type: array
+      items:
+        $ref: '#/components/schemas/Feature'
+    JobStates:
+      type: array
+      items:
+        $ref: '#/components/schemas/JobState'
+    JobState:
+      type: object
+      properties:
+        jobId:
+          type: string
+        title:
+          type: string
+        filename:
+          type: string
+        tasks:
+          $ref: '#/components/schemas/TaskStates'
+        magnet_version:
+          type: string
+    TaskStates:
+      type: array
+      items:
+        $ref: '#/components/schemas/TaskState'
+    TaskState:
+      type: object
+      properties:
+        taskId:
+          type: string
+        filename:
+          type: string
+        state:
+          type: string
+          enum:
+          - PENDING
+          - SCHEDULED
+          - RUNNING
+          - COMPLETED
+          - FAILED
+          - REJECTED
+          - CANCELLED
+          description: Task completion state
+        features:
+          $ref: '#/components/schemas/Features'
+        error:
+          type: string
+          description: In 'Failed' state the human readable error message provided
+        report:
+          type: string
+          description: In 'Completed' state the human readable import report provided
+    RemoteFile:
+      required:
+      - url
+      type: object
+      properties:
+        url:
+          type: string
+        headers:
+          type: array
+          items:
+            type: string
+        method:
+          type: string
+          description: GET, POST, PUT, DELETE, ...
+        filename:
+          type: string
+          description: |-
+            *.{FormatExt} file to upload.
+
+            Field may be empty, so service try get filename from response headers of request by `url` or make random unique value.
+
+    OAuthRequest:
+      oneOf:
+        - $ref: '#/components/schemas/OAuthAuthorizationCodeRequest'
+        - $ref: '#/components/schemas/OAuthRefreshTokenRequest'
+      discriminator:
+        propertyName: grant_type
+        mapping:
+          authorization_code: '#/components/schemas/OAuthAuthorizationCodeRequest'
+          refresh_token: '#/components/schemas/OAuthRefreshTokenRequest'
+
+    OAuthAuthorizationCodeRequest:
+      type: object
+      properties:
+        grant_type:
+          type: string
+          enum: ['authorization_code']
+        scope:
+          type: string
+          enum: ['offline']
+          description: A support of the `offline` scope is optional.
+        code:
+          type: string
+          description: An SSO Authorization Code
+        teamId:
+          type: string  # ['string', 'null']
+          description: |-
+            An SSO Team Identifier to authenticate as. It is recommended to specify the desired teamId explicitly.
+
+            If ommitted, handling is up to backend. Some backends might use a default team id, some might allow doing things on all the teams.
+            If specified explicitly as `null`, an authentication is to be performed without coupling to teams at all (as a user). However, it's up to backend if it supports this or not.
+      required:
+        - grant_type
+        - code
+      additionalProperties: false
+
+
+    OAuthRefreshTokenRequest:
+      type: object
+      properties:
+        grant_type:
+          type: string
+          enum: ['refresh_token']
+        scope:
+          type: string
+          enum: ['offline']
+          description: |-
+            A support of the `offline` scope is optional. If specified, will respond with an error if refresh flow is unsupported.
+        refresh_token:
+          type: string
+          description: A refresh token obtained before
+      required:
+        - grant_type
+        - refresh_token
+      additionalProperties: false
+
+
+    OAuthError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_request
+            - invalid_client
+            - invalid_grant
+            - invalid_scope
+            - unauthorized_client
+            - unsupported_grant_type
+        error_description:
+          type: string
+        error_uri:
+          type: string
+      required:
+        - error
+      additionalProperties: false
+
+  parameters:
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+    FormatExt:
+      name: FormatExt
+      in: path
+      required: true
+      schema:
+        type: string
+    types:
+      name: types
+      in: query
+      description: 'data types to import separated with comma: ''PT'' (points), ''LN''
+        (lineworks)'
+      required: true
+      schema:
+        type: string
+    pdfscaling:
+      name: PDFScaling
+      in: query
+      description: Optional scaling parameter for PDF documents. By default has value
+        1000
+      schema:
+        type: number
+    outBackground:
+      name: outBackground
+      in: query
+      schema:
+        type: boolean
+        default: false
+  securitySchemes:
+    JWT:
+      type: apiKey
+      name: X-Topcon-Auth
+      in: header
+
+  responses:
+    OAuthResponse:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              token_type:
+                type: string
+                enum: ['bearer']
+              access_token:
+                type: string
+              expires_in:
+                type: integer
+                example: 3600
+              refresh_token:
+                type: string
+            required:
+              - token_type
+              - access_token
+              - expires_in
+            additionalProperties: false
+      headers:
+        Cache-Control:
+          required: true
+          schema:
+            type: string
+            enum: ['no-store']
+        Pragma:
+          required: true
+          schema:
+            type: string
+            enum: ['no-cache']

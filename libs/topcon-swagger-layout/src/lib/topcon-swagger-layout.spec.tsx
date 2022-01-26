@@ -1,10 +1,10 @@
 import { render } from '@testing-library/react';
 
-import TopconSwaggerLayout from './topcon-swagger-layout';
+import TopconSwaggerBaseLayout from './topcon-swagger-base-layout';
 
 describe('TopconSwaggerLayout', () => {
   it('should render successfully', () => {
-    const { baseElement } = render(<TopconSwaggerLayout />);
+    const { baseElement } = render(<TopconSwaggerBaseLayout />);
     expect(baseElement).toBeTruthy();
   });
 });

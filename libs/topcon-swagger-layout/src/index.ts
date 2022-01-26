@@ -1,1 +1,1 @@
-export * from './lib/topcon-swagger-layout';
+export * from './lib/topcon-swagger-base-layout';
